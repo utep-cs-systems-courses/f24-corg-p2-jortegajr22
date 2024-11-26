@@ -22,9 +22,9 @@ void
 __interrupt_vec(WDT_VECTOR) WDT()/* 250 interrupts/sec */
 {
   wcount ++;
-  if (wcount == 250/100){
+  if (wcount == 250){
     wcount = 0;
-  
+    toggle_green_led();
     if (led_on){
       led_on = 0;
       P1OUT &= ~LED_GREEN;
