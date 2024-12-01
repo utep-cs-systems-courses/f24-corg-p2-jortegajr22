@@ -33,7 +33,12 @@ switch_init()
   P2REN |= SWITCHES;             /* enables resistors for switches */
   P2IE |= SWITCHES;              /* enable interrupts from switches */
   P2OUT |= SWITCHES;             /* pull-ups for switches */
-  P2DIR &= ~SWITCHES            ;/* set switches' bits for input */
+  P2DIR &= ~SWITCHES;            /* set switches' bits for input */
+/*  while (1) {
+    if (!(P2IN & SW1)) {  // Check if SW1 is pressed
+      P1OUT ^= LED_RED;
+    }
+    }*/
   switch_update_interrupt_sense();
 }
 int switches = 0;
@@ -83,6 +88,10 @@ draw_shape(int color)
 int
 main()
 {
+  P1DIR |= LEDS;
+  P1OUT &= ~LED_GREEN;
+  P1OUT |= LED_RED;
+  
   configureClocks();
   lcd_init();
   switch_init();
@@ -113,7 +122,7 @@ void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
     P2IFG &= ~SWITCHES;/* clear pending sw interrupts */
-    P1OUT ^= LEDS;
+    P1OUT ^= LED_GREEN;
     switch_interrupt_handler();  /* single handler for all switches */
   }
 }
