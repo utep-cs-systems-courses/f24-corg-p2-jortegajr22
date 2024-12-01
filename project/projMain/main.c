@@ -3,15 +3,14 @@
 #include "main.h"
 #include "lcdutils.h"
 #include "lcddraw.h"
-
-#define LED BIT6
+#include "led.h"
 
 #define SW1 1
 #define SW2 2
 #define SW3 4
 #define SW4 8
 
-#define SWITCHES 15  /* Combines all switches */
+#define SWITCHES (SW1 | SW2 | SW3 | SW4)
 
 int col = 0, row = 0, currCol = 0;
 int centerCol, centerRow;
@@ -104,22 +103,22 @@ main()
       draw_shape(1);   // redraw
       redrawFlag = 0;
     }
-    P1OUT &= ~LED;
+    P1OUT &= ~LEDS;
     or_sr(0x10);       // CPU OFF
-    P1OUT |= LED;
+    P1OUT |= LEDS;
   }
 }
 
 void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
-    P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
+    P2IFG &= ~SWITCHES;/* clear pending sw interrupts */
+    P1OUT ^= LEDS;
     switch_interrupt_handler();  /* single handler for all switches */
   }
 }
 void __interrupt_vec(WDT_VECTOR) WDT(){
-
-  P1OUT ^= LED;  // Toggle LED on each WDT interrupt
+  // Toggle LED on each WDT interrupt
 
 }
 
