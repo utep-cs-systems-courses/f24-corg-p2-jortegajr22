@@ -1,5 +1,6 @@
 #include <msp430.h>
 #include <libTimer.h>
+#include "main.h"
 #include "lcdutils.h"
 #include "lcddraw.h"
 
