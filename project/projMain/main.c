@@ -11,14 +11,15 @@
 #define SW3 4
 #define SW4 8
 
-#define SWITCHES 15
+#define SWITCHES (SW1 | SW2 | SW3 | SW4)  /* Combines all switches */
 
-
-int col = 0, row = 0, int currCol = 0;
-int centerCol = width/2, centerRow = height-12;
+int col = 0, row = 0, currCol = 0;
+int centerCol = 64, centerRow = 80;
+int redrawFlag = 0;
+char drawCol = 0, drawRow = 0, stepCol = 0;
 
 static char
-switch_update_interupt_sense()
+switch_update_interrupt_sense()
 {
   char p2val = P2IN;
   /* update switch iinterrupt to detect changes from current buttons */
@@ -38,22 +39,48 @@ switch_init()
 }
 int switches = 0;
 
+void
+switch_interrupt_handler()
+{
+  char p2val = switch_update_interrupt_sense();
+  switches = ~p2val & SWITCHES;
 
+  // Adjust position based on button press
+  if (switches & SW1) {  // Move left
+    centerCol -= 3;
+    if (centerCol < 3) centerCol = 3; // Prevent going off-screen
+    redrawFlag = 1;
+  }
+  if (switches & SW2) {  // Move right
+    centerCol += 3;
+    if (centerCol > screenWidth - 3) centerCol = screenWidth - 3; // Prevent going off-screen
+    redrawFlag = 1;
+  }
+}
 
 void
-draw_shape()
+draw_shape(int color)
 {
-  for (row; row < 5; row ++){
-    for (col = -row; col <= row/4; col ++)
-      drawPixel(centerCol + col, centerRow + row, COLOR_YELLOW);
-    for (; col <= row; col++)
-      drawPixel(centerCol + col, centerRow + row, COLOR_RED);
-  }
-  for (; row < 10; row ++){
-    for (col = -row; col <= row/4; col += 2)
-      drawPixel(centerCol + col, centerRow + row, COLOR_YELLOW);
-    for (; col <= row; col++)
-      drawPixel(centerCol + col, centerRow +row, COLOR_RED);
+  if (color == 1){
+      for (row = 0; row < 5; row ++){
+	for (col = -row; col <= row/4; col ++)
+	  drawPixel(centerCol + col, centerRow + row, COLOR_YELLOW);
+	for (; col <= row; col++)
+	  drawPixel(centerCol + col, centerRow + row, COLOR_RED);
+      }
+      for (; row < 10; row ++){
+	for (col = -row; col <= row/4; col += 2)
+	  drawPixel(centerCol + col, centerRow + row, COLOR_YELLOW);
+	for (; col <= row; col++)
+	  drawPixel(centerCol + col, centerRow +row, COLOR_RED);
+      }
+      drawCol += 3; drawRow += 3;
+  }else{
+    for (row = 0; row < 5; row++) {
+      for (col = -row; col <= row; row++){
+	drawPixel(centerCol + col, centerRow +row, COLOR_BLUE);
+      }
+    }
   }
 }
 
@@ -62,15 +89,26 @@ main()
 {
   configureClocks();
   lcd_init();
-  u_char width = screenWidth, height = screenHeight;
+  switch_init();
+
+  enableWDTInterrupts();
+  or_sr(0x8);
+  
 
   clearScreen(COLOR_BLUE);
+  draw_shape(1);
 
-  draw_shape();
+  while (1) {
+    if (redrawFlag) {  // Check if redraw is necessary
+      draw_shape(0);   //erase old shape
+      draw_shape(1);   // redraw
+    }
+    or_sr(0x10);       // CPU OFF
+  }
 }
 
 void
-__interupt_vec(PORT2_VECTOR) Port_2(){
+__interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
     P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
     switch_interrupt_handler();  /* single handler for all switches */

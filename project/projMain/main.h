@@ -23,7 +23,7 @@ extern int switches;                   /* Holds the state of switches */
 /* Function prototypes */
 void switch_init();                    /* Initialize switches */
 static char switch_update_interrupt_sense(); /* Update switch interrupt sense */
-void draw_shape();                     /* Draw the desired shape */
+void draw_shape(int color);                     /* Draw the desired shape */
 void switch_interrupt_handler();       /* Handle switch events */
 
 #endif /* MAIN_H */
