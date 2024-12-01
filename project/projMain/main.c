@@ -55,7 +55,9 @@ switch_interrupt_handler()
     if (centerCol > 3){
       centerCol -= 3; // Prevent going off-screen
       redrawFlag = 1;
-      P1OUT |= LED_GREEN; // Turn on green LED for debug
+      P1OUT ^= LED_GREEN; // Turn on green LED for debug
+      draw_shape(0);
+      draw_shape(1);
     }
   }
   if (switches & SW2) {  // Move right
@@ -63,7 +65,9 @@ switch_interrupt_handler()
     if (centerCol < screenWidth - 3){
       centerCol += 3; // Prevent going off-screen
       redrawFlag = 1;
-      P1OUT |= LED_GREEN; // Turn on green LED for debug
+      draw_shape(0);
+      draw_shape(1);
+      P1OUT ^= LED_GREEN; // Turn on green LED for debug
     }
   }
 }
@@ -108,11 +112,12 @@ main()
   draw_shape(1);
 
   while (1) {
-    if (redrawFlag) {  // Check if redraw is necessary
-      draw_shape(0);   //erase old shape
-      draw_shape(1);   // redraw
-      redrawFlag = 0;
-      __delay_cycles(500000);
+    if (redrawFlag) {
+      redrawFlag = 0;// Check if redraw is necessary
+      // draw_shape(0);   //erase old shape
+      //draw_shape(1);   // redraw
+      
+      // __delay_cycles(500000);
       P1OUT &= ~LED_RED;  // Turn off green LED after processing
       
     }
@@ -125,7 +130,7 @@ main()
 void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
-    P2IFG &= ~SWITCHES;/* clear pending sw interrupts */
+    P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
     // P1OUT ^= LED_GREEN;
     switch_interrupt_handler();  /* single handler for all switches */
   }
