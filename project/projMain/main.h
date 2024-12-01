@@ -13,7 +13,7 @@
 #define SW2 2
 #define SW3 4
 #define SW4 8
-#define SWITCHES (SW1 | SW2 | SW3 | SW4)  /* Combines all switches */
+#define SWITCHES 15  /* Combines all switches */
 
 /* Variables */
 extern int col, row, currCol;          /* Used for drawing */

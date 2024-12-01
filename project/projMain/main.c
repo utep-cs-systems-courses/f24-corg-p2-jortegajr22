@@ -11,12 +11,12 @@
 #define SW3 4
 #define SW4 8
 
-#define SWITCHES (SW1 | SW2 | SW3 | SW4)  /* Combines all switches */
+#define SWITCHES 15  /* Combines all switches */
 
 int col = 0, row = 0, currCol = 0;
 int centerCol, centerRow;
 int redrawFlag = 0;
-char drawCol = 0, drawRow = 0, stepCol = 0;
+//char drawCol = 0, drawRow = 0, stepCol = 0;
 
 static char
 switch_update_interrupt_sense()
@@ -51,6 +51,7 @@ switch_interrupt_handler()
     if (centerCol > 3){
       centerCol -= 3; // Prevent going off-screen
       redrawFlag = 1;
+     
     }
   }
   if (switches & SW2) {  // Move right
@@ -73,10 +74,11 @@ draw_shape(int color)
     }
   }
   for (; row < 10; row++) {
-    for (col = -row; col <= row; col++) {
+    for (col = -row; col <= row; col+=2) {
       drawPixel(centerCol + col, centerRow + row, drawColor);
     }
-  }
+    }
+  //drawPixel(screenWidth /2, screenHeight / 2, COLOR_RED);
 }  
 
 int
@@ -102,7 +104,9 @@ main()
       draw_shape(1);   // redraw
       redrawFlag = 0;
     }
+    P1OUT &= ~LED;
     or_sr(0x10);       // CPU OFF
+    P1OUT |= LED;
   }
 }
 
@@ -113,3 +117,9 @@ __interrupt_vec(PORT2_VECTOR) Port_2(){
     switch_interrupt_handler();  /* single handler for all switches */
   }
 }
+void __interrupt_vec(WDT_VECTOR) WDT(){
+
+  P1OUT ^= LED;  // Toggle LED on each WDT interrupt
+
+}
+
