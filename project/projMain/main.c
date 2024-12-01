@@ -55,7 +55,7 @@ switch_interrupt_handler()
     if (centerCol > 3){
       centerCol -= 3; // Prevent going off-screen
       redrawFlag = 1;
-     
+      P1OUT |= LED_GREEN; // Turn on green LED for debug
     }
   }
   if (switches & SW2) {  // Move right
@@ -63,6 +63,7 @@ switch_interrupt_handler()
     if (centerCol < screenWidth - 3){
       centerCol += 3; // Prevent going off-screen
       redrawFlag = 1;
+      P1OUT |= LED_GREEN; // Turn on green LED for debug
     }
   }
 }
@@ -111,10 +112,13 @@ main()
       draw_shape(0);   //erase old shape
       draw_shape(1);   // redraw
       redrawFlag = 0;
+      __delay_cycles(500000);
+      P1OUT &= ~LED_RED;  // Turn off green LED after processing
+      
     }
-    P1OUT &= ~LEDS;
+    // P1OUT &= ~LEDS;
     or_sr(0x10);       // CPU OFF
-    P1OUT |= LEDS;
+    //P1OUT |= LEDS;
   }
 }
 
@@ -122,7 +126,7 @@ void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
     P2IFG &= ~SWITCHES;/* clear pending sw interrupts */
-    P1OUT ^= LED_GREEN;
+    // P1OUT ^= LED_GREEN;
     switch_interrupt_handler();  /* single handler for all switches */
   }
 }
