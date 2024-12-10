@@ -69,31 +69,17 @@ void
 draw_shape(int color)
 {
   unsigned int drawColor = (color == 1) ? COLOR_YELLOW : COLOR_BLUE;
-  if (color){ 
+   
     for (row = 0; row < 5; row++) {
       for (col = -row; col <= row; col++) {
-        drawPixel(centerCol + col, centerRow + row, drawColor);
+        drawPixel((color ? centerCol : prevCol) + col, centerRow + row, drawColor);
       }
     }
     for (; row < 10; row++) {
       for (col = -row; col <= row; col+=2) {
-        drawPixel(centerCol + col, centerRow + row, drawColor);
+        drawPixel((color ? centerCol : prevCol) + col, centerRow + row, drawColor);
       }
     }
-  }
-  else{
-    for (row = 0; row < 5; row++) {
-      for (col = -row; col <= row; col++) {
-	drawPixel(prevCol + col, centerRow + row, drawColor);
-      }
-    }
-    for (; row < 10; row++) {
-      for (col = -row; col <= row; col+=2) {
-	drawPixel(prevCol + col, centerRow + row, drawColor);
-      }
-    }
-  }
-  //drawPixel(screenWidth /2, screenHeight / 2, COLOR_RED);
 }
 
 void
@@ -103,7 +89,7 @@ wdt_c_handler(){
 
   if (secCount >= 25){
     secCount = 0;
-
+    P1OUT ^= LED_GREEN;
     //Handle shape movement
     if (currState == STATE_MOVE_LEFT && centerCol > 10){
       prevCol = centerCol;
@@ -145,7 +131,7 @@ main()
   while (1) {
     if (redrawFlag) {
       redrawFlag = 0;
-      
+      update_shape();
     }
     P1OUT &= ~LEDS;
     or_sr(0x10);       // CPU OFF
@@ -155,20 +141,23 @@ main()
 void
 update_shape()
 {
+  P1OUT ^= LED_GREEN;
   draw_shape(0);
   draw_shape(1);
+  P1OUT ^= LED_GREEN;
 }
 
 void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
     P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
-    
+    P1OUT ^= LED_RED;
     switch_interrupt_handler();  /* single handler for all switches */
   }
 }
-void __interrupt_vec(WDT_VECTOR) WDT(){
+void
+__interrupt_vec(WDT_VECTOR) WDT(){
   wdt_c_handler();
 
-}
+  }
 
