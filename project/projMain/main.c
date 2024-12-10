@@ -11,11 +11,16 @@
 #define SW4 8
 
 #define SWITCHES (SW1 | SW2 | SW3 | SW4)
+#define STATE_IDLE 0
+#define STATE_MOVE_LEFT 1
+#define STATE_MOVE_RIGHT 2
 
-int col = 0, row = 0, currCol = 0;
+int col = 0, row = 0;
 int centerCol, centerRow;
+int prevCol;
 int redrawFlag = 0;
-//char drawCol = 0, drawRow = 0, stepCol = 0;
+int currState = STATE_IDLE;
+
 
 static char
 switch_update_interrupt_sense()
@@ -49,23 +54,13 @@ switch_interrupt_handler()
   if (switches & SW1) {  // Move left
     
     if (centerCol > 10){
-      draw_shape(0);
-      centerCol -= 3; // Prevent going off-screen
-      redrawFlag = 1;
-      P1OUT ^= LED_GREEN; // Turn on green LED for debug
-      
-      draw_shape(1);
+      currState = STATE_MOVE_LEFT;
     }
   }
   if (switches & SW2) {  // Move right
     
     if (centerCol < screenWidth - 3){
-      draw_shape(0);
-      centerCol += 3; // Prevent going off-screen
-      redrawFlag = 1;
-     
-      draw_shape(1);
-      P1OUT ^= LED_GREEN; // Turn on green LED for debug
+      currState = STATE_MOVE_RIGHT;
     }
   }
 }
@@ -74,20 +69,57 @@ void
 draw_shape(int color)
 {
   unsigned int drawColor = (color == 1) ? COLOR_YELLOW : COLOR_BLUE;
-  
-  for (row = 0; row < 5; row++) {
-    for (col = -row; col <= row; col++) {
-      drawPixel(centerCol + col, centerRow + row, drawColor);
+  if (color){ 
+    for (row = 0; row < 5; row++) {
+      for (col = -row; col <= row; col++) {
+        drawPixel(centerCol + col, centerRow + row, drawColor);
+      }
+    }
+    for (; row < 10; row++) {
+      for (col = -row; col <= row; col+=2) {
+        drawPixel(centerCol + col, centerRow + row, drawColor);
+      }
     }
   }
-  for (; row < 10; row++) {
-    for (col = -row; col <= row; col+=2) {
-      drawPixel(centerCol + col, centerRow + row, drawColor);
+  else{
+    for (row = 0; row < 5; row++) {
+      for (col = -row; col <= row; col++) {
+	drawPixel(prevCol + col, centerRow + row, drawColor);
+      }
     }
+    for (; row < 10; row++) {
+      for (col = -row; col <= row; col+=2) {
+	drawPixel(prevCol + col, centerRow + row, drawColor);
+      }
     }
+  }
   //drawPixel(screenWidth /2, screenHeight / 2, COLOR_RED);
-}  
+}
 
+void
+wdt_c_handler(){
+  static int secCount = 0;
+  secCount++;
+
+  if (secCount >= 25){
+    secCount = 0;
+
+    //Handle shape movement
+    if (currState == STATE_MOVE_LEFT && centerCol > 10){
+      prevCol = centerCol;
+      centerCol -= 3;
+      redrawFlag = 1;
+    }
+    if (currState == STATE_MOVE_RIGHT && centerCol < screenWidth -10){
+      prevCol = centerCol;
+      centerCol += 3;
+      redrawFlag = 1;
+    }
+
+      //reset to idle
+      currState = STATE_IDLE;
+  }
+}
 int
 main()
 {
@@ -101,6 +133,7 @@ main()
 
   centerCol = screenWidth / 2;
   centerRow = screenHeight / 2;
+  prevCol = centerCol;
 
   enableWDTInterrupts();
   or_sr(0x8);
@@ -111,9 +144,6 @@ main()
 
   while (1) {
     if (redrawFlag) {
-      
-      draw_shape(0);   //erase old shape
-      draw_shape(1);   // redraw
       redrawFlag = 0;
       
     }
@@ -121,6 +151,12 @@ main()
     or_sr(0x10);       // CPU OFF
     P1OUT |= LEDS;
   }
+}
+void
+update_shape()
+{
+  draw_shape(0);
+  draw_shape(1);
 }
 
 void
@@ -132,7 +168,7 @@ __interrupt_vec(PORT2_VECTOR) Port_2(){
   }
 }
 void __interrupt_vec(WDT_VECTOR) WDT(){
-  // Toggle LED on each WDT interrupt
+  wdt_c_handler();
 
 }
 

@@ -5,15 +5,15 @@
 #include "lcdutils.h"
 #include "lcddraw.h"
 
-/* Definitions *
-#define LED BIT6
+/* Definitions */
+
 
 /* Switch definitions */
 #define SW1 1
 #define SW2 2
 #define SW3 4
 #define SW4 8
-#define SWITCHES 15  /* Combines all switches */
+#define SWITCHES (SW1 | SW2 | SW3 | SW4)
 
 /* Variables */
 extern int col, row, currCol;          /* Used for drawing */
@@ -25,6 +25,8 @@ void switch_init();                    /* Initialize switches */
 static char switch_update_interrupt_sense(); /* Update switch interrupt sense */
 void draw_shape(int color);                     /* Draw the desired shape */
 void switch_interrupt_handler();       /* Handle switch events */
+void wdt_c_handler();                  /* watchdog timed control*/
+void update_shape();
 
 #endif /* MAIN_H */
 
