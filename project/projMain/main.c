@@ -128,17 +128,18 @@ main()
   
 
   clearScreen(COLOR_BLUE);
-  //  draw_shape(1);
-
+  //update_shape();
+  redrawFlag = 1;
   while (1) {
+    // P1OUT ^= ~LED_GREEN;
     if (redrawFlag) {
-      redrawFlag = 0;
       update_shape();
       P1OUT ^= ~LED_GREEN;
+      redrawFlag = 0;
     }
    
     // P1OUT &= ~LEDS;
-    // or_sr(0x10);       // CPU OFF
+     or_sr(0x10);       // CPU OFF
     //P1OUT |= LEDS;
   }
 }
