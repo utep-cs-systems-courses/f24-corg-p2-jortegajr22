@@ -49,18 +49,18 @@ switch_interrupt_handler()
 {
   char p2val = switch_update_interrupt_sense();
   switches = ~p2val & SWITCHES;
-
+ 
   // Adjust position based on button press
   if (switches & SW1) {  // Move left
-    
+    //P1OUT ^= ~LED_GREEN;
     if (centerCol > 10){
-      currState = STATE_MOVE_LEFT;
+       currState = STATE_MOVE_LEFT;
     }
   }
   if (switches & SW2) {  // Move right
-    
+    //P1OUT ^= ~LED_GREEN;
     if (centerCol < screenWidth - 3){
-      currState = STATE_MOVE_RIGHT;
+       currState = STATE_MOVE_RIGHT;
     }
   }
 }
@@ -86,24 +86,26 @@ void
 wdt_c_handler(){
   static int secCount = 0;
   secCount++;
-
+  //P1OUT ^= LEDS;
   if (secCount >= 25){
     secCount = 0;
-    P1OUT ^= LED_GREEN;
+    //P1OUT ^= LED_RED;
     //Handle shape movement
     if (currState == STATE_MOVE_LEFT && centerCol > 10){
       prevCol = centerCol;
       centerCol -= 3;
       redrawFlag = 1;
+      // P1OUT ^= ~LED_GREEN;
     }
     if (currState == STATE_MOVE_RIGHT && centerCol < screenWidth -10){
       prevCol = centerCol;
       centerCol += 3;
       redrawFlag = 1;
+      // P1OUT ^=LED_RED;
     }
 
       //reset to idle
-      currState = STATE_IDLE;
+     currState = STATE_IDLE;
   }
 }
 int
@@ -126,32 +128,35 @@ main()
   
 
   clearScreen(COLOR_BLUE);
-  draw_shape(1);
+  //  draw_shape(1);
 
   while (1) {
     if (redrawFlag) {
       redrawFlag = 0;
       update_shape();
+      P1OUT ^= ~LED_GREEN;
     }
-    P1OUT &= ~LEDS;
-    or_sr(0x10);       // CPU OFF
-    P1OUT |= LEDS;
+   
+    // P1OUT &= ~LEDS;
+    // or_sr(0x10);       // CPU OFF
+    //P1OUT |= LEDS;
   }
 }
 void
 update_shape()
 {
-  P1OUT ^= LED_GREEN;
+  // P1OUT |= LED_GREEN;
   draw_shape(0);
   draw_shape(1);
-  P1OUT ^= LED_GREEN;
+  // P1OUT &= ~LED_GREEN;
 }
 
 void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
     P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
-    P1OUT ^= LED_RED;
+    // P1OUT ^= ~LED_GREEN;
+    
     switch_interrupt_handler();  /* single handler for all switches */
   }
 }
