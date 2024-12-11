@@ -72,6 +72,30 @@ void drawChar5x7(u_char rcol, u_char rrow, char c,
   }
 }
 
+void drawString8x12(u_char col, u_char row, char *string, u_int fgColorBGR, u_int bgColorBGR) {
+  u_char cols = col;
+  while (*string) {
+    drawChar8x12(cols, row, *string++, fgColorBGR, bgColorBGR);  // Use an 8x12 font
+    cols += 9;  // Adjust for 8x12 font spacing
+  }
+}
+void drawChar8x12(u_char rcol, u_char rrow, char c, u_int fgColorBGR, u_int bgColorBGR)
+{
+  u_char col = 0;
+  u_char row = 0;
+  u_char oc = c - 0x20;  // Offset character code to font array index
+
+  for (row = 0; row < 12; row++) {  // For each row in the character
+    u_char bits = font_8x12[oc][row];  // Get row data for the character
+    for (col = 0; col < 8; col++) {    // For each column in the row
+      u_int colorBGR = (bits & (1 << (7 - col))) ? fgColorBGR : bgColorBGR;
+      drawPixel(rcol + col, rrow + row, colorBGR);  // Map to screen
+    }
+  }
+}
+
+
+
 /** Draw string at col,row
  *  Type:
  *  FONT_SM - small (5x8,) FONT_MD - medium (8x12,) FONT_LG - large (11x16)
