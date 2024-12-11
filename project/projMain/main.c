@@ -52,13 +52,12 @@ switch_interrupt_handler()
  
   // Adjust position based on button press
   if (switches & SW1) {  // Move left
-    //P1OUT ^= ~LED_GREEN;
     if (centerCol > 10){
        currState = STATE_MOVE_LEFT;
+       
     }
   }
   if (switches & SW2) {  // Move right
-    //P1OUT ^= ~LED_GREEN;
     if (centerCol < screenWidth - 3){
        currState = STATE_MOVE_RIGHT;
     }
@@ -68,19 +67,11 @@ switch_interrupt_handler()
 void
 draw_shape(int color)
 {
-  unsigned int drawColor = (color == 1) ? COLOR_YELLOW : COLOR_BLUE;
-   
-    for (row = 0; row < 5; row++) {
-      for (col = -row; col <= row; col++) {
-        drawPixel((color ? centerCol : prevCol) + col, centerRow + row, drawColor);
-      }
-    }
-    for (; row < 10; row++) {
-      for (col = -row; col <= row; col+=2) {
-        drawPixel((color ? centerCol : prevCol) + col, centerRow + row, drawColor);
-      }
-    }
-}
+  unsigned int drawColor = (color == 1) ? COLOR_YELLOW : COLOR_BLUE;      
+  fillRectangle((color ? centerCol : prevCol), centerRow, 8, 8, drawColor);
+}    
+    
+    
 
 void
 wdt_c_handler(){
@@ -89,21 +80,24 @@ wdt_c_handler(){
   //P1OUT ^= LEDS;
   if (secCount >= 25){
     secCount = 0;
-    //P1OUT ^= LED_RED;
+    
     //Handle shape movement
-    if (currState == STATE_MOVE_LEFT && centerCol > 10){
-      prevCol = centerCol;
-      centerCol -= 3;
-      redrawFlag = 1;
-      // P1OUT ^= ~LED_GREEN;
+    if (currState == STATE_MOVE_LEFT){
+      if (centerCol > 10){
+	
+	prevCol = centerCol;
+	centerCol -= 3;
+	redrawFlag = 1;
+	//P1OUT ^= LED_RED;
+      }
     }
-    if (currState == STATE_MOVE_RIGHT && centerCol < screenWidth -10){
+    if (currState == STATE_MOVE_RIGHT){
       prevCol = centerCol;
       centerCol += 3;
       redrawFlag = 1;
-      // P1OUT ^=LED_RED;
+      //P1OUT ^=LED_RED;
     }
-
+    if (redrawFlag ==1) P1OUT ^= LED_RED;
       //reset to idle
      currState = STATE_IDLE;
   }
@@ -128,17 +122,16 @@ main()
   
 
   clearScreen(COLOR_BLUE);
-  //update_shape();
-  redrawFlag = 1;
+  update_shape();  
   while (1) {
-    // P1OUT ^= ~LED_GREEN;
-    if (redrawFlag) {
-      update_shape();
-      P1OUT ^= ~LED_GREEN;
-      redrawFlag = 0;
+    
+    if (redrawFlag == 1) {
+       update_shape();
+       P1OUT ^= ~LED_GREEN;
+       redrawFlag = 0;
     }
-   
-    // P1OUT &= ~LEDS;
+    
+    //P1OUT &= LED_GREEN;
      or_sr(0x10);       // CPU OFF
     //P1OUT |= LEDS;
   }
@@ -146,17 +139,15 @@ main()
 void
 update_shape()
 {
-  // P1OUT |= LED_GREEN;
   draw_shape(0);
   draw_shape(1);
-  // P1OUT &= ~LED_GREEN;
+
 }
 
 void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
     P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
-    // P1OUT ^= ~LED_GREEN;
     
     switch_interrupt_handler();  /* single handler for all switches */
   }
