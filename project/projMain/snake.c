@@ -1,8 +1,10 @@
 #include <msp430.h>
 #include <libTimer.h>
+#include <stdlib.h>
 #include "snake.h"
 #include "lcdutils.h"
 #include "lcddraw.h"
+#include "led.h"
 
 #define SW1 1
 #define SW2 2
@@ -20,6 +22,8 @@ int centerCol, centerRow;  // Current position of the shape
 int prevCol, prevRow;      // Previous position of the shape
 int currDirection = DIR_RIGHT;  // Initial direction
 volatile int redrawFlag = 0;
+int squareCol, squareRow;  // SnakeFood position
+int delayMultiplier = 1;   // default delay after collision
 
 // Switch initialization and handlers
 static char switch_update_interrupt_sense() {
@@ -75,25 +79,58 @@ void update_position() {
   if (centerRow < 0) centerRow = screenHeight - MOVE_STEP;
   if (centerRow >= screenHeight) centerRow = 0;
 
+  // Check for collision with the food square
+  if (centerCol == squareCol && centerRow == squareRow) {
+    delayMultiplier++;  // Increase delay multiplier
+    squareCol = -1;     // Move square off-screen
+    squareRow = -1;
+  }
   redrawFlag = 1;  // Signal redraw
 }
 
 void update_shape() {
-  draw_shape(0);  // Erase old shape
-  draw_shape(1);  // Draw new shape
+  draw_shape(1);
+  // Draw the red square if it's on-screen
+  if (squareCol >= 0 && squareRow >= 0) {
+    fillRectangle(squareCol, squareRow, 8, 8, COLOR_RED);
+  }
+  erase_shape();
+}
+void erase_shape() {
+  for (int i = 0; i < delayMultiplier * WDT_THRESHOLD; i++) {
+    __delay_cycles(50000);  // Delay
+  }
+  draw_shape(0);
 }
 
 // WDT interrupt handler
 void wdt_c_handler() {
   static int secCount = 0;
+  static int spawnCount = 0;
   secCount++;
 
   if (secCount >= WDT_THRESHOLD) {
     secCount = 0;
     update_position();  // Move shape continuously
   }
+  if (spawnCount >= 5 * 280) {  // Every 9 seconds
+    spawnCount = 0;
+
+    // Generate random square position within screen boundaries
+    squareCol = (rand() % (screenWidth / MOVE_STEP)) * MOVE_STEP;
+    squareRow = (rand() % (screenHeight / MOVE_STEP)) * MOVE_STEP;
+
+    redrawFlag = 1;  // Signal redraw to display new square
+  }
+  
+  
+  
 }// Main program
 int main() {
+  P1DIR |= LEDS;
+  P1OUT &= ~LED_GREEN;
+  P1OUT |= LED_RED;
+  
   configureClocks();
   lcd_init();
   switch_init();
@@ -102,6 +139,10 @@ int main() {
   centerRow = screenHeight / 2;
   prevCol = centerCol;
   prevRow = centerRow;
+
+  squareCol = -1;  // Initially no square
+  squareRow = -1;
+  srand(0);  // Seed random generator
 
   enableWDTInterrupts();
   or_sr(0x8);  // Enable interrupts
@@ -112,8 +153,11 @@ int main() {
   while (1) {
     if (redrawFlag) {
       redrawFlag = 0;
+      P1OUT ^= LED_RED;
       update_shape();  // Redraw shape
+      
     }
+    // P1OUT ^= ~LED_GREEN;
     or_sr(0x10);  // Enter low-power mode
   }
 }
@@ -122,11 +166,13 @@ int main() {
 void __interrupt_vec(PORT2_VECTOR) Port_2() {
   if (P2IFG & SWITCHES) {
     P2IFG &= ~SWITCHES;  // Clear pending switch interrupts
+    // P1OUT ^= ~LED_GREEN;
     switch_interrupt_handler();
     __bic_SR_register_on_exit(LPM0_bits);  // Exit low-power mode
   }
 }
 void __interrupt_vec(WDT_VECTOR) WDT() {
   wdt_c_handler();
+  
   __bic_SR_register_on_exit(LPM0_bits);  // Exit low-power mode
 }

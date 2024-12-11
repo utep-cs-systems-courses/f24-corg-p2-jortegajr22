@@ -28,6 +28,7 @@ void switch_interrupt_handler();
 void draw_shape(int color);
 void update_position();
 void update_shape();
+void erase_shape();
 void wdt_c_handler();
 
 #endif /* SNAKE_H */
