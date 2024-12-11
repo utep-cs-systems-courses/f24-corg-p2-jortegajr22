@@ -21,7 +21,9 @@
 int centerCol, centerRow;  // Current position of the shape
 int prevCol, prevRow;      // Previous position of the shape
 int currDirection = DIR_RIGHT;  // Initial direction
+volatile int isGameOver = 0;
 volatile int redrawFlag = 0;
+
 int squareCol, squareRow;  // SnakeFood position
 int delayMultiplier = 1;   // default delay after collision
 
@@ -81,7 +83,7 @@ void update_position() {
 
   // Check for collision with the food square
   if (centerCol == squareCol && centerRow == squareRow) {
-    delayMultiplier++;  // Increase delay multiplier
+    isGameOver = 1;  // Increase delay multiplier
     squareCol = -1;     // Move square off-screen
     squareRow = -1;
   }
@@ -89,31 +91,39 @@ void update_position() {
 }
 
 void update_shape() {
-  draw_shape(1);
-  // Draw the red square if it's on-screen
-  if (squareCol >= 0 && squareRow >= 0) {
-    fillRectangle(squareCol, squareRow, 8, 8, COLOR_RED);
+  if (isGameOver) {
+    clearScreen(COLOR_BLUE);  // Clear the screen
+    drawString8x12(screenWidth / 2 - 36, screenHeight / 2 - 6,
+		   "GAME OVER", COLOR_RED, COLOR_BLUE);
+
+    // Stop all further execution
+    WDTCTL = WDTPW | WDTHOLD;  // Stop the Watchdog Timer
+    __disable_interrupt();     // Disable all interrupts
+    while (1);                 // Infinite loop to halt the program
+  } else {
+    draw_shape(1);  // Draw the snake
+    if (squareCol >= 0 && squareRow >= 0) {
+      fillRectangle(squareCol, squareRow, 8, 8, COLOR_RED);  // Draw red square
+    }
   }
-  erase_shape();
 }
 void erase_shape() {
-  for (int i = 0; i < delayMultiplier * WDT_THRESHOLD; i++) {
-    __delay_cycles(50000);  // Delay
-  }
-  draw_shape(0);
+    draw_shape(0);  
 }
 
 // WDT interrupt handler
 void wdt_c_handler() {
   static int secCount = 0;
   static int spawnCount = 0;
-  secCount++;
+  
+  secCount++;   
+  spawnCount++;  
 
   if (secCount >= WDT_THRESHOLD) {
     secCount = 0;
     update_position();  // Move shape continuously
   }
-  if (spawnCount >= 5 * 280) {  // Every 9 seconds
+  if (spawnCount >= 7 * 280) {  // Every 9 seconds
     spawnCount = 0;
 
     // Generate random square position within screen boundaries
@@ -122,10 +132,10 @@ void wdt_c_handler() {
 
     redrawFlag = 1;  // Signal redraw to display new square
   }
-  
-  
-  
-}// Main program
+}
+ 
+
+// Main program
 int main() {
   P1DIR |= LEDS;
   P1OUT &= ~LED_GREEN;
@@ -154,11 +164,15 @@ int main() {
     if (redrawFlag) {
       redrawFlag = 0;
       P1OUT ^= LED_RED;
+      erase_shape();
       update_shape();  // Redraw shape
       
     }
-    // P1OUT ^= ~LED_GREEN;
-    or_sr(0x10);  // Enter low-power mode
+    if (isGameOver){
+       or_sr(0x10);  // Enter low-power mode
+    } else {
+      or_sr(0x10);
+    }
   }
 }
 
