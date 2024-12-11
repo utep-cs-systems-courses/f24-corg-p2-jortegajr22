@@ -28,7 +28,8 @@ switch_update_interrupt_sense()
   char p2val = P2IN;
   /* update switch iinterrupt to detect changes from current buttons */
   P2IES |= (p2val & SWITCHES);   /* if switch up, sense down */
-  P2IES &= (p2val | ~SWITCHES);  /* if switch down, sense up */
+  P2
+    IES &= (p2val | ~SWITCHES);  /* if switch down, sense up */
   return p2val;
 }
 
@@ -78,28 +79,32 @@ wdt_c_handler(){
   static int secCount = 0;
   secCount++;
   //P1OUT ^= LEDS;
-  if (secCount >= 25){
+  if (secCount >= 50){
     secCount = 0;
-    
+      
     //Handle shape movement
-    if (currState == STATE_MOVE_LEFT){
+     if (currState == STATE_MOVE_LEFT){
       if (centerCol > 10){
 	
 	prevCol = centerCol;
-	centerCol -= 3;
+	centerCol -= 5;
 	redrawFlag = 1;
 	//P1OUT ^= LED_RED;
       }
     }
     if (currState == STATE_MOVE_RIGHT){
       prevCol = centerCol;
-      centerCol += 3;
+      centerCol += 5;
       redrawFlag = 1;
       //P1OUT ^=LED_RED;
     }
-    if (redrawFlag ==1) P1OUT ^= LED_RED;
+    if (redrawFlag ==1){
+      P1OUT ^= LED_RED;
+      P1OUT ^= LED_RED;
+    }
       //reset to idle
      currState = STATE_IDLE;
+    
   }
 }
 int
@@ -126,20 +131,22 @@ main()
   while (1) {
     
     if (redrawFlag == 1) {
-       update_shape();
-       P1OUT ^= ~LED_GREEN;
-       redrawFlag = 0;
+      redrawFlag = 0;
+      update_shape();
+    
+      
     }
     
-    //P1OUT &= LED_GREEN;
+    P1OUT &= LED_GREEN;
      or_sr(0x10);       // CPU OFF
-    //P1OUT |= LEDS;
+    P1OUT |= LEDS;
   }
 }
 void
 update_shape()
 {
   draw_shape(0);
+
   draw_shape(1);
 
 }
@@ -147,14 +154,16 @@ update_shape()
 void
 __interrupt_vec(PORT2_VECTOR) Port_2(){
     if (P2IFG & SWITCHES) {      /* did a button cause this interrupt? */
-    P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
-    
-    switch_interrupt_handler();  /* single handler for all switches */
+      P2IFG &= ~SWITCHES;          /* clear pending sw interrupts */
+      
+      switch_interrupt_handler();  /* single handler for all switches */
+      __bic_SR_register_on_exit(LPM0_bits);
   }
 }
 void
 __interrupt_vec(WDT_VECTOR) WDT(){
   wdt_c_handler();
-
+  
+  P1OUT &= ~LED_GREEN;
   }
 
