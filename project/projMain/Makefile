@@ -10,13 +10,13 @@ LDFLAGS		= -L../lib -L/opt/ti/msp430_gcc/include/
 CC              = msp430-elf-gcc
 AS              = msp430-elf-gcc -mmcu=${CPU} -c
 
-all: main.elf
+all: snake.elf
 
 #additional rules for files
-main.elf: ${COMMON_OBJECTS} main.o
+snake.elf: ${COMMON_OBJECTS} snake.o
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $^ -lTimer -lLcd
 
-load: main.elf
+load: snake.elf
 	msp430loader.sh $^
 
 clean:
